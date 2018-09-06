@@ -93,7 +93,7 @@ import sys
 import time
 import zlib
 
-from cStringIO import StringIO
+from StringIO import StringIO
 
 import numpy as np
 

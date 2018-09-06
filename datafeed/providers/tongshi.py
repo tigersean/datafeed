@@ -36,6 +36,7 @@ import win32api
 import win32con
 import win32gui
 import winerror
+import logging as log
 
 from ctypes import *
 from ctypes.wintypes import *
@@ -303,7 +304,7 @@ class MainWindow(object):
         # Don't blow up if class already registered to make testing easier
         try:
             classAtom = win32gui.RegisterClass(wc)
-        except win32gui.error, err_info:
+        except (win32gui.error, err_info):
             if err_info.winerror!=winerror.ERROR_CLASS_ALREADY_EXISTS:
                 raise
 
@@ -331,7 +332,7 @@ class MainWindow(object):
         d = datetime.today()
         if d.hour == 15 and d.minute == 3:
             # make sure we are not receiving reporting data after market closed.
-            print("Market closed, exit on %d:%d." % (d.hour, d.minute))
+            log.info("Market closed, exit on %d:%d." % (d.hour, d.minute))
             win32gui.PostMessage(self.hwnd, win32con.WM_COMMAND, 1025, 0)
 
     def _do_stock_quote(self):
@@ -363,7 +364,7 @@ class MainWindow(object):
             icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
             hicon = win32gui.LoadImage(hinst, iconPathName, win32con.IMAGE_ICON, 0, 0, icon_flags)
         else:
-            print "Can't find a Python icon file - using default"
+            print("Can't find a Python icon file - using default")
             hicon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
 
         flags = win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP
@@ -373,7 +374,7 @@ class MainWindow(object):
         except win32gui.error:
             # This is common when windows is starting, and this code is hit
             # before the taskbar has been created.
-            print "Failed to add the taskbar icon - is explorer running?"
+            print ("Failed to add the taskbar icon - is explorer running?")
             # but keep running anyway - when explorer starts, we get the
             # TaskbarCreated message.
 
@@ -397,7 +398,7 @@ class MainWindow(object):
                     records[r.symbol] = r.to_dict()
 
             self.client.put_reports(records)
-            print "%d report data sended" % header.m_nPacketNum
+            print ("%d report data sended", header.m_nPacketNum)
         elif wparam == RCV_FILEDATA:
             if header.m_wDataType in (FILE_HISTORY_EX, FILE_5MINUTE_EX, FILE_1MINUTE_EX):
                 # Daily history
@@ -432,24 +433,24 @@ class MainWindow(object):
                 rec = np.array(records, dtype=MinuteUnion.DTYPE)
                 self.client.put_minute(key, rec)
             elif header.m_wDataType == FILE_POWER_EX:
-                print "power ex"
+                log.error("power ex")
             elif header.m_wDataType == FILE_BASE_EX:
-                print "base ex"
+                log.error("base ex")
             elif header.m_wDataType == FILE_NEWS_EX:
-                print "news ex"
+                log.error("news ex")
             elif header.m_wDataType == FILE_HTML_EX:
-                print "html ex"
+                log.error("html ex")
             elif header.m_wDataType == FILE_SOFTWARE_EX:
-                print "software ex"
+                log.error("software ex")
             else:
-                print "Unknown file data."
+                log.error("Unknown file data.")
         else:
-            print "Unknown data type."
+            log.error("Unknown data type.")
         return 1
 
     def _on_taskbar_notify(self, hwnd, msg, wparam, lparam):
         if lparam == win32con.WM_LBUTTONUP or lparam == win32con.WM_RBUTTONUP:
-            print "You right clicked me."
+            log.error("You right clicked me.")
             menu = win32gui.CreatePopupMenu()
             win32gui.AppendMenu(menu, win32con.MF_STRING, 1023, "Display Dialog")
             win32gui.AppendMenu(menu, win32con.MF_STRING, 1025, "Exit program" )
@@ -463,12 +464,12 @@ class MainWindow(object):
     def _on_command(self, hwnd, msg, wparam, lparam):
         id = win32api.LOWORD(wparam)
         if id == 1023:
-            print "Goodbye"
+            log.info("Goodbye")
         elif id == 1025:
-            print "Goodbye"
+            log.info("Goodbye")
             win32gui.DestroyWindow(self.hwnd)
         else:
-            print "Unknown command -", id
+            log.error("Unknown command -", id)
 
 
 def program_running():
@@ -489,7 +490,7 @@ def program_running():
 
 def run_tongshi_win(server_addr='localhost', server_password=None):
     if program_running():
-        print "already running"
+        log.error("already running")
         exit(0)
 
     w=MainWindow(host=server_addr, password=server_password)
